@@ -61,26 +61,9 @@ func (a *App) CurrentUser() Identity {
 // 	return Fund(id)
 // }
 
-// // LoadMap loads all hashes into a temp directory
-// func (a *App) LoadMap(contents map[string]Hash) (string, error) {
-// 	dir, err := ioutil.TempDir("", "dapp-load-map")
-// 	if err != nil {
-// 		return "", errors.Wrap(err, "LoadMap: create temp dir failed")
-// 	}
-//
-// 	for name, hash := range contents {
-// 		err = ipfs.Get(hash.Multihash, "", filepath.Join(dir, name))
-// 		if err != nil {
-// 			return "", errors.Wrap(err, "LoadMap: ipfs get failed")
-// 		}
-// 	}
-//
-// 	return dir, nil
-// }
-
 // KV returns a kv
 func (a *App) KV() KV {
-	return a.kv
+	return a.Providers.KV
 }
 
 // Login logs `user` into `a`
@@ -90,7 +73,7 @@ func (a *App) Login(user Identity) {
 
 // Store returns a store
 func (a *App) Store() Store {
-	return a.store
+	return a.Providers.Store
 }
 
 // PublishHash publishes `hash` using the user current user.
@@ -113,21 +96,6 @@ func (a *App) Store() Store {
 // 	return tx, hash, nil
 // }
 //
-// // StoreMap adds `contents` into ipfs as a directory
-// func (a *App) StoreMap(contents map[string]Hash) (Hash, error) {
-// 	dir, err := a.LoadMap(contents)
-// 	if err != nil {
-// 		return Hash{}, errors.Wrap(err, "StoreMap: loading local dir failed")
-// 	}
-// 	defer os.RemoveAll(dir)
-//
-// 	h, err := ipfs.Add(dir)
-// 	if err != nil {
-// 		return Hash{}, errors.Wrap(err, "StoreMap: ipfs add failed")
-// 	}
-//
-// 	return Hash{h}, nil
-// }
 
 // // StorePath adds `path` into ipfs, returning it's hash
 // func (a *App) StorePath(path string) (Hash, error) {
@@ -137,19 +105,4 @@ func (a *App) Store() Store {
 // 	}
 //
 // 	return Hash{h}, nil
-// }
-
-// func (a *App) verifyPublished() error {
-// 	// load the "dapp-manifest" data field for the account at address from all the
-// 	// horizon servers.  If they disagree, fatally error out (in the future,
-// 	// perhaps retry).
-// 	hash, err := ManifestHash(a.ID, a.verificationServers...)
-// 	if err != nil {
-// 		errors.Print(err)
-// 		os.Exit(1)
-// 	}
-//
-// 	_ = hash
-// 	log.Println(hash.B58String())
-// 	return nil
 // }

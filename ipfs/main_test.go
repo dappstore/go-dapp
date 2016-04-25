@@ -7,4 +7,5 @@ import (
 )
 
 var _ hash.Hasher = ipfs.DefaultClient
+var _ dapp.Policy = ipfs.DefaultClient
 var _ dapp.Store = ipfs.DefaultClient

@@ -6,5 +6,6 @@ import (
 )
 
 var _ dapp.Identity = &stellar.Identity{}
+var _ dapp.Policy = stellar.DefaultClient
 var _ dapp.KV = stellar.DefaultClient
 var _ dapp.IdentityProvider = stellar.DefaultClient

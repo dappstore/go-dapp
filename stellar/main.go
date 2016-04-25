@@ -5,15 +5,13 @@ import (
 	// "log"
 	"net/http"
 
-	"github.com/jbenet/go-multihash"
 	"github.com/pkg/errors"
-	"github.com/stellar/go-stellar-base/build"
 	"github.com/stellar/go-stellar-base/horizon"
 	"github.com/stellar/go-stellar-base/keypair"
 )
 
 // DefaultClient is the default horizon config
-var DefaultClient = &Client{horizon.DefaultPublicNetClient}
+var DefaultClient = &Client{horizon.DefaultTestNetClient}
 
 // Client connects to the stellar network
 type Client struct {
@@ -88,38 +86,4 @@ func LoadAccountData(
 	}
 
 	return
-}
-
-// PublishHash publishes `hash` to the stellar network for publisher `identity`,
-// using `horizonServer` to submit a transaction signed by `signers`.
-func PublishHash(
-	horizonServer string,
-	identity *Identity,
-	hash multihash.Multihash,
-) (string, error) {
-
-	full, ok := identity.KP.(*keypair.Full)
-	if !ok {
-		return "", errors.New("stellar: don't know secret key for identity")
-	}
-
-	horizon := &horizon.Client{URL: horizonServer}
-
-	tx := build.Transaction(
-		build.SourceAccount{AddressOrSeed: identity.PublicKey()},
-		build.AutoSequence{SequenceProvider: horizon},
-		build.SetData("dapp:publications", []byte(hash)),
-	)
-	txe := tx.Sign(full.Seed())
-	xdrs, err := txe.Base64()
-	if err != nil {
-		return "", errors.Wrap(err, "stellar: failed to craft transaction")
-	}
-
-	result, err := horizon.SubmitTransaction(xdrs)
-	if err != nil {
-		return "", errors.Wrap(err, "stellar: transaction failed")
-	}
-
-	return result.Hash, nil
 }

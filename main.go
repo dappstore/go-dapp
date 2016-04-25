@@ -1,10 +1,12 @@
 package dapp
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/jbenet/go-multihash"
 	"github.com/pkg/errors"
@@ -15,19 +17,25 @@ import (
 type App struct {
 	ID string
 
-	ids   IdentityProvider
-	kv    KV
-	store Store
+	Providers struct {
+		IdentityProvider
+		KV
+		Store
+	}
 
 	policies []Policy
 }
 
-// DirModifier can change a directory
-type DirModifier func(path string) error
-
 // Hash represents a single hash in the dapp system
 type Hash struct {
 	multihash.Multihash
+}
+
+// Bytes returns a copy the raw value of the hash
+func (h Hash) Bytes() []byte {
+	var ret bytes.Buffer
+	ret.Write([]byte(h.Multihash))
+	return ret.Bytes()
 }
 
 func (h Hash) String() string {
@@ -64,7 +72,8 @@ type Policy interface {
 // addressed by their content.
 type Store interface {
 	StoreLocalDir(path string) (Hash, error)
-	LoadLocalDir(content Hash) (string, error)
+	LoadLocalDir(path string, content Hash) error
+	NewTempDir() (string, error)
 }
 
 // TX represents the id of a transaction
@@ -94,16 +103,31 @@ func NewApp(id string, policies ...Policy) (app *App, err error) {
 		return
 	}
 
+	if app.Providers.IdentityProvider == nil {
+		err = errors.New("dapp: no identity provider initialized while applying policies")
+		return
+	}
+
+	if app.Providers.KV == nil {
+		err = errors.New("dapp: no kv initialized while applying policies")
+		return
+	}
+
+	if app.Providers.Store == nil {
+		err = errors.New("dapp: no store initialized while applying policies")
+		return
+	}
+
 	// TODO: extract these to policies
-	// if *printID {
-	// 	fmt.Println(id)
-	// 	os.Exit(0)
-	// }
-	//
-	// if *printVersion {
-	// 	fmt.Println(version)
-	// 	os.Exit(0)
-	// }
+	if *printID {
+		fmt.Println(id)
+		os.Exit(0)
+	}
+
+	if *printVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	return
 }
