@@ -5,26 +5,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
-	"github.com/dappstore/agree"
-	"github.com/dappstore/dapp/dapp/ipfs"
-	"github.com/dappstore/dapp/dapp/stellar"
 	"github.com/jbenet/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stellar/go-stellar-base/horizon"
-	"github.com/stellar/go-stellar-base/keypair"
 )
 
 // App represents the identity for an application that is deployed using dapp
 type App struct {
-	ID  string
-	Err error
+	ID string
 
-	agreements          *agree.System
-	policies            []Policy
-	verificationServers []string
-	horizons            map[string]struct{}
+	ids   IdentityProvider
+	kv    KV
+	store Store
+
+	policies []Policy
 }
 
 // DirModifier can change a directory
@@ -46,10 +41,34 @@ type Identity interface {
 	Sign(input []byte) ([]byte, error)
 }
 
+// IdentityProvider provides ids, either through parsing serialized values or
+// generating random identities.
+type IdentityProvider interface {
+	ParseIdentity(str string) (Identity, error)
+	RandomIdentity() (Identity, error)
+}
+
+// KV reprents a ssytem that can perform a kv set/get in a decentralized
+// manner.
+type KV interface {
+	Set(identity Identity, key string, value []byte) (TX, error)
+	Get(identity Identity, key string) ([]byte, error)
+}
+
 // Policy values represent a policy that can change state on the app
 type Policy interface {
 	ApplyDappPolicy(*App) error
 }
+
+// Store represents a module that can store and load filesystems
+// addressed by their content.
+type Store interface {
+	StoreLocalDir(path string) (Hash, error)
+	LoadLocalDir(content Hash) (string, error)
+}
+
+// TX represents the id of a transaction
+type TX string
 
 // type VerifyAgainstAny struct{}
 // type VerifyAgainstAll struct{}
@@ -59,36 +78,34 @@ func CurrentUser(app string) Identity {
 	return loginSessions[app]
 }
 
-// Fund funds id on the stellar network using the configured friendbot.
-func Fund(id Identity) error {
-	return stellar.FundAccount(defaultHorizon, id.PublicKey())
-}
+// // Fund funds id on the stellar network using the configured friendbot.
+// func Fund(id Identity) error {
+// 	return stellar.FundAccount(defaultHorizon, id.PublicKey())
+// }
 
-// GetApplication initializes the dapp system for integrating applications.  It
-// enables self-updateing and self-verifying features.
-func GetApplication(id string, policies ...Policy) *App {
-	app := &App{
-		ID:         id,
-		agreements: &agree.System{},
-	}
+// NewApp creates a new dapp application with identity `id` and applies
+// `policies`.
+func NewApp(id string, policies ...Policy) (app *App, err error) {
+	app = &App{ID: id}
 
-	err := app.InitializePolicies(policies)
+	err = app.ApplyPolicies(policies...)
 	if err != nil {
-		errors.Print(err)
-		os.Exit(1)
+		err = errors.Wrap(err, "dapp: create-app failed to apply policies")
+		return
 	}
 
-	if *printID {
-		fmt.Println(id)
-		os.Exit(0)
-	}
+	// TODO: extract these to policies
+	// if *printID {
+	// 	fmt.Println(id)
+	// 	os.Exit(0)
+	// }
+	//
+	// if *printVersion {
+	// 	fmt.Println(version)
+	// 	os.Exit(0)
+	// }
 
-	if *printVersion {
-		fmt.Println(version)
-		os.Exit(0)
-	}
-
-	return app
+	return
 }
 
 // Login logs the current process into `app` as `user`, replacing any current
@@ -133,24 +150,14 @@ func ManifestHash(id string, horizons ...string) (multihash.Multihash, error) {
 	return nil, errors.New("could not load any manifest hashes")
 }
 
-// NewIdentity creates and validates a new identity
-func NewIdentity(seedOrAddress string) (Identity, error) {
-	kp, err := keypair.Parse(seedOrAddress)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse identity")
-	}
-
-	return &stellar.Identity{KP: kp}, nil
-}
-
 // PublishHash publishes `hash` using `identity`.
-func PublishHash(hash Hash, identity Identity) (string, error) {
-	return stellar.PublishHash(
-		defaultHorizon,
-		identity.(*stellar.Identity),
-		hash.Multihash,
-	)
-}
+// func PublishHash(hash Hash, identity Identity) (string, error) {
+// 	return stellar.PublishHash(
+// 		defaultHorizon,
+// 		identity.(*stellar.Identity),
+// 		hash.Multihash,
+// 	)
+// }
 
 // SetDefaultHorizon sets the default horizon server
 func SetDefaultHorizon(addy string) {
@@ -247,60 +254,60 @@ func loadIdentityMultihash(
 	return
 }
 
-func verifyPublication(server, id, path string) (bool, error) {
-	publishedHash, err := loadIdentityMultihash(server, id, "dapp-publications")
-	if err != nil {
-		return false, errors.Wrap(err, "get publication hash failed")
-	}
+// func verifyPublication(server, id, path string) (bool, error) {
+// 	publishedHash, err := loadIdentityMultihash(server, id, "dapp-publications")
+// 	if err != nil {
+// 		return false, errors.Wrap(err, "get publication hash failed")
+// 	}
+//
+// 	exists, err := ipfs.Exists(publishedHash, id)
+// 	if err != nil {
+// 		return false, errors.Wrap(err, "directory verification failed")
+// 	}
+//
+// 	//TODO: load the manifest, verify signatures against binaries
+//
+// 	return exists, nil
+// }
 
-	exists, err := ipfs.Exists(publishedHash, id)
-	if err != nil {
-		return false, errors.Wrap(err, "directory verification failed")
-	}
-
-	//TODO: load the manifest, verify signatures against binaries
-
-	return exists, nil
-}
-
-// ModifyDir loads an ipfs dir, modifies it according to `fn` and
-// commits it back to ipfs, returning the hash
-func ModifyDir(
-	base multihash.Multihash,
-	dir string,
-	fn DirModifier,
-) (ret multihash.Multihash, err error) {
-	exists, err := ipfs.Exists(base, dir)
-	if err != nil {
-		err = errors.Wrap(err, "failed to check ipfs existence")
-		return
-	}
-
-	next, err := ioutil.TempDir("", "dapp-modify-dir")
-	if err != nil {
-		return
-	}
-	defer os.RemoveAll(dir)
-
-	if exists {
-		err = ipfs.Get(base, dir, next)
-		if err != nil {
-			err = errors.Wrap(err, "failed to populate temp dir")
-			return
-		}
-	}
-
-	err = fn(next)
-	if err != nil {
-		err = errors.Wrap(err, "modify callback errored")
-		return
-	}
-
-	ret, err = ipfs.Add(next)
-	if err != nil {
-		err = errors.Wrap(err, "ipfs add dailed")
-		return
-	}
-
-	return
-}
+// // ModifyDir loads an ipfs dir, modifies it according to `fn` and
+// // commits it back to ipfs, returning the hash
+// func ModifyDir(
+// 	base multihash.Multihash,
+// 	dir string,
+// 	fn DirModifier,
+// ) (ret multihash.Multihash, err error) {
+// 	exists, err := ipfs.Exists(base, dir)
+// 	if err != nil {
+// 		err = errors.Wrap(err, "failed to check ipfs existence")
+// 		return
+// 	}
+//
+// 	next, err := ioutil.TempDir("", "dapp-modify-dir")
+// 	if err != nil {
+// 		return
+// 	}
+// 	defer os.RemoveAll(dir)
+//
+// 	if exists {
+// 		err = ipfs.Get(base, dir, next)
+// 		if err != nil {
+// 			err = errors.Wrap(err, "failed to populate temp dir")
+// 			return
+// 		}
+// 	}
+//
+// 	err = fn(next)
+// 	if err != nil {
+// 		err = errors.Wrap(err, "modify callback errored")
+// 		return
+// 	}
+//
+// 	ret, err = ipfs.Add(next)
+// 	if err != nil {
+// 		err = errors.Wrap(err, "ipfs add dailed")
+// 		return
+// 	}
+//
+// 	return
+// }

@@ -10,6 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultClient is the default client
+var DefaultClient = &Client{}
+
+// Client uses the ipfs cli app
+type Client struct{}
+
 // Add ensures `path` is in ipfs
 func Add(path string) (multihash.Multihash, error) {
 	return Hash(path)

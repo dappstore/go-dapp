@@ -12,9 +12,13 @@ import (
 	"github.com/stellar/go-stellar-base/keypair"
 )
 
-// HorizonOracle implemente agree.Oracle, provided a stellar-powered agreement
-// oracle.
-type HorizonOracle string
+// DefaultClient is the default horizon config
+var DefaultClient = &Client{horizon.DefaultPublicNetClient}
+
+// Client connects to the stellar network
+type Client struct {
+	*horizon.Client
+}
 
 // Identity implements dapp.Identity
 type Identity struct {

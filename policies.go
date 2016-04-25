@@ -14,7 +14,7 @@ var _ Policy = &AgreementOracle{}
 
 // ApplyDappPolicy applies `p` to `app`
 func (p *AgreementOracle) ApplyDappPolicy(app *App) error {
-	app.agreements.Oracles = append(app.agreements.Oracles, p.Oracle)
+	// app.agreements.Oracles = append(app.agreements.Oracles, p.Oracle)
 	return nil
 }
 
@@ -28,7 +28,7 @@ var _ Policy = &AgreementPolicy{}
 
 // ApplyDappPolicy applies `p` to `app`
 func (p *AgreementPolicy) ApplyDappPolicy(app *App) error {
-	app.agreements.Policies = append(app.agreements.Policies, p.Policy)
+	// app.agreements.Policies = append(app.agreements.Policies, p.Policy)
 	return nil
 }
 
