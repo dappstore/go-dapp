@@ -11,8 +11,9 @@ func (sys *System) SetPublications(
 	publisher dapp.Identity,
 	contents dapp.Hash,
 ) (tx dapp.TX, hash dapp.Hash, err error) {
+	kv := sys.App.Providers
 
-	tx, err = sys.App.KV().Set(publisher, "dapp:publications", contents.Bytes())
+	tx, err = kv.Set(publisher, "dapp:publications", contents.Bytes())
 	if err != nil {
 		err = errors.Wrap(err, "protocol-publish: failed to set publication hash")
 		return

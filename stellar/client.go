@@ -87,3 +87,9 @@ func (c *Client) AnnounceIdentity(id dapp.Identity) (dapp.TX, error) {
 	return dapp.TX(txHash), nil
 
 }
+
+// IsIdentityAnnounced implements dapp.IdentityProvider
+func (c *Client) IsIdentityAnnounced(id dapp.Identity) (bool, error) {
+	sid := id.(*Identity)
+	return AccountExists(c.Client, sid.Address())
+}

@@ -10,7 +10,7 @@ import (
 
 // LoadTempDir loads all hashes into a temp directory
 func (sys *System) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
-	s := sys.App.Store()
+	var s dapp.Store = sys.App.Providers
 
 	dir, err := s.NewTempDir()
 	if err != nil {
@@ -29,7 +29,7 @@ func (sys *System) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
 
 // StoreDir adds `contents` into the store grouped together as a directory
 func (sys *System) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) {
-	s := sys.App.Store()
+	var s dapp.Store = sys.App.Providers
 
 	dir, err := sys.LoadTempDir(contents)
 	if err != nil {
@@ -48,7 +48,7 @@ func (sys *System) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) {
 
 // StoreLocalPaths adds `contents` into the store as groups together as a directory
 func (sys *System) StoreLocalPaths(paths []string) (dapp.Hash, error) {
-	s := sys.App.Store()
+	var s dapp.Store = sys.App.Providers
 	contents := map[string]dapp.Hash{}
 
 	// Add all paths to store, collecting hashes

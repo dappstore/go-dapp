@@ -55,6 +55,7 @@ type IdentityProvider interface {
 	ParseIdentity(str string) (Identity, error)
 	RandomIdentity() (Identity, error)
 	AnnounceIdentity(Identity) (TX, error)
+	IsIdentityAnnounced(id Identity) (bool, error)
 }
 
 // KV reprents a ssytem that can perform a kv set/get in a decentralized
@@ -80,18 +81,10 @@ type Store interface {
 // TX represents the id of a transaction
 type TX string
 
-// type VerifyAgainstAny struct{}
-// type VerifyAgainstAll struct{}
-
 // CurrentUser returns the current process' identity within `app`
 func CurrentUser(app string) Identity {
 	return loginSessions[app]
 }
-
-// // Fund funds id on the stellar network using the configured friendbot.
-// func Fund(id Identity) error {
-// 	return stellar.FundAccount(defaultHorizon, id.PublicKey())
-// }
 
 // NewApp creates a new dapp application with identity `id` and applies
 // `policies`.
