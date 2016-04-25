@@ -54,6 +54,7 @@ type Identity interface {
 type IdentityProvider interface {
 	ParseIdentity(str string) (Identity, error)
 	RandomIdentity() (Identity, error)
+	AnnounceIdentity(Identity) (TX, error)
 }
 
 // KV reprents a ssytem that can perform a kv set/get in a decentralized

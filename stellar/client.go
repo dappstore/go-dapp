@@ -47,7 +47,13 @@ func (c *Client) Set(identity dapp.Identity, key string, value []byte) (dapp.TX,
 
 // Get implements kv.Kv
 func (c *Client) Get(identity dapp.Identity, key string) ([]byte, error) {
-	return nil, nil
+	sid := identity.(*Identity)
+	data, err := LoadAccountData(c.Client, sid.Address())
+	if err != nil {
+		return nil, errors.Wrap(err, "stellar: load account failed")
+	}
+
+	return data[key], nil
 }
 
 // ParseIdentity implements dapp.IdentityProvider
@@ -68,4 +74,16 @@ func (c *Client) RandomIdentity() (dapp.Identity, error) {
 	}
 
 	return &Identity{KP: kp}, nil
+}
+
+// AnnounceIdentity implements dapp.IdentityProvider
+func (c *Client) AnnounceIdentity(id dapp.Identity) (dapp.TX, error) {
+	sid := id.(*Identity)
+	txHash, err := FundAccount(c.Client, sid.Address())
+	if err != nil {
+		return dapp.TX(""), errors.Wrap(err, "stellar: funding account failed")
+	}
+
+	return dapp.TX(txHash), nil
+
 }
