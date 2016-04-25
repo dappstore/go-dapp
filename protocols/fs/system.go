@@ -8,6 +8,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+// LoadTemp loads `contents` into a temporary path
+func (sys *System) LoadTemp(contents dapp.Hash) (string, error) {
+	var s dapp.Store = sys.App.Providers
+
+	dir, err := s.NewTempDir()
+	if err != nil {
+		return "", errors.Wrap(err, "protocol-fs: failed to create temp dir")
+	}
+
+	err = s.LoadLocalDir(filepath.Join(dir), contents)
+	if err != nil {
+		return "", errors.Wrap(err, "protocol-fs: load local dir failed")
+	}
+
+	return dir, nil
+}
+
 // LoadTempDir loads all hashes into a temp directory
 func (sys *System) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
 	var s dapp.Store = sys.App.Providers

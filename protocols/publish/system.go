@@ -5,6 +5,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetPublications resolves the publisher's latest published code
+func (sys *System) GetPublications(
+	publisher dapp.Identity,
+) (hash dapp.Hash, err error) {
+	kv := sys.App.Providers
+	bytes, err := kv.Get(publisher, "dapp:publications")
+	if err != nil {
+		err = errors.Wrap(err, "protocol-publish: failed to get publication hash")
+		return
+	}
+
+	hash.Multihash = bytes
+	return
+}
+
 // SetPublications overwrites the publisher's publications hash using the hash
 // for the local directory at `path`.
 func (sys *System) SetPublications(
