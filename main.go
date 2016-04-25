@@ -31,6 +31,11 @@ type Hash struct {
 	multihash.Multihash
 }
 
+// Equals returns true if two hashes are equal
+func (h Hash) Equals(other Hash) bool {
+	return bytes.Equal(h.Multihash, other.Multihash)
+}
+
 // Bytes returns a copy the raw value of the hash
 func (h Hash) Bytes() []byte {
 	var ret bytes.Buffer
@@ -44,6 +49,7 @@ func (h Hash) String() string {
 
 // Identity represents a single identity in the dapp system
 type Identity interface {
+	Equals(other Identity) bool
 	PublicKey() string
 	Verify(input []byte, signature []byte) error
 	Sign(input []byte) ([]byte, error)
