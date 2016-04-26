@@ -41,6 +41,15 @@ func (p *Protocol) AddClaimer(c MakesClaims) error {
 	return nil
 }
 
+// CurrentClaims returns the claims that have been recorded on `p`
+func (p *Protocol) CurrentClaims() string {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	data := p.Claims.data
+
+	return data.String()
+}
+
 // LockClaimers prevents further claimers from being added to this protocol
 func (p *Protocol) LockClaimers() error {
 	p.lock.Lock()

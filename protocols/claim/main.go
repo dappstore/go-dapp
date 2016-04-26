@@ -68,6 +68,12 @@ func AddClaimer(c MakesClaims) error {
 	return Default.AddClaimer(c)
 }
 
+// CurrentClaims returns the claims that have been recorded on the default
+// instance of this protocol.
+func CurrentClaims() string {
+	return Default.CurrentClaims()
+}
+
 // LockClaimers prevents further claimers from being added to the default
 // instance of this`gq protocol
 func LockClaimers() error {
@@ -87,4 +93,8 @@ func Push(path string, value interface{}) error {
 // WriteFile writes the claims made on the default claim protocol to disk.
 func WriteFile(fs afero.Fs, path string, perm os.FileMode) error {
 	return Default.WriteFile(fs, path, perm)
+}
+
+func init() {
+	Default = New()
 }
