@@ -6,12 +6,12 @@ import (
 )
 
 // AddTrust records trust in `id` for `role`
-func (sys *System) AddTrust(id dapp.Identity, role string) error {
+func (sys *Protocol) AddTrust(id dapp.Identity, role string) error {
 	return nil
 }
 
 // RemoveTrust removes trust
-func (sys *System) RemoveTrust(id dapp.Identity, role string) error {
+func (sys *Protocol) RemoveTrust(id dapp.Identity, role string) error {
 	set := sys.trustSets[role]
 	toRemove := -1
 
@@ -26,7 +26,7 @@ func (sys *System) RemoveTrust(id dapp.Identity, role string) error {
 		return errors.New("protocol-trust: id is already not trusted")
 	}
 
-	var next = append(set[:idx], set[idx+1:]...)
+	var next = append(set[:toRemove], set[toRemove+1:]...)
 	sys.trustSets[role] = next
 
 	return nil
@@ -34,6 +34,6 @@ func (sys *System) RemoveTrust(id dapp.Identity, role string) error {
 
 // IsTrusted returns true if `id` is trusted in `role` according this systems
 // local trust set.
-func (sys *System) IsTrusted(id dapp.Identity, role string) (bool, error) {
+func (sys *Protocol) IsTrusted(id dapp.Identity, role string) (bool, error) {
 	return false, nil
 }

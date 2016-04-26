@@ -1,4 +1,4 @@
-package fs
+package dfs
 
 import (
 	"os"
@@ -9,8 +9,8 @@ import (
 )
 
 // LoadTemp loads `contents` into a temporary path
-func (sys *System) LoadTemp(contents dapp.Hash) (string, error) {
-	var s dapp.Store = sys.App.Providers
+func (sys *Protocol) LoadTemp(contents dapp.Hash) (string, error) {
+	s := sys.store
 
 	dir, err := s.NewTempDir()
 	if err != nil {
@@ -26,8 +26,8 @@ func (sys *System) LoadTemp(contents dapp.Hash) (string, error) {
 }
 
 // LoadTempDir loads all hashes into a temp directory
-func (sys *System) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
-	var s dapp.Store = sys.App.Providers
+func (sys *Protocol) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
+	s := sys.store
 
 	dir, err := s.NewTempDir()
 	if err != nil {
@@ -45,8 +45,8 @@ func (sys *System) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
 }
 
 // StoreDir adds `contents` into the store grouped together as a directory
-func (sys *System) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) {
-	var s dapp.Store = sys.App.Providers
+func (sys *Protocol) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) {
+	s := sys.store
 
 	dir, err := sys.LoadTempDir(contents)
 	if err != nil {
@@ -64,8 +64,8 @@ func (sys *System) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) {
 }
 
 // StoreLocalPaths adds `contents` into the store as groups together as a directory
-func (sys *System) StoreLocalPaths(paths []string) (dapp.Hash, error) {
-	var s dapp.Store = sys.App.Providers
+func (sys *Protocol) StoreLocalPaths(paths []string) (dapp.Hash, error) {
+	s := sys.store
 	contents := map[string]dapp.Hash{}
 
 	// Add all paths to store, collecting hashes

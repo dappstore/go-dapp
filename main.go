@@ -5,7 +5,6 @@ import (
 	"flag"
 
 	"github.com/jbenet/go-multihash"
-	"github.com/stellar/go-stellar-base/horizon"
 )
 
 // Hash represents a single hash in the dapp system
@@ -80,11 +79,6 @@ func Logout(app string) {
 	delete(loginSessions, app)
 }
 
-// SetDefaultHorizon sets the default horizon server
-func SetDefaultHorizon(addy string) {
-	defaultHorizon = addy
-}
-
 var dev = flag.Bool(
 	"dapp.dev",
 	false,
@@ -104,7 +98,6 @@ var printID = flag.Bool(
 )
 
 var version = "devel"
-var defaultHorizon = horizon.DefaultTestNetClient.URL
 var loginSessions map[string]Identity
 
 func init() {

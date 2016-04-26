@@ -7,12 +7,19 @@ import (
 	"github.com/stellar/go-stellar-base/keypair"
 )
 
-// ApplyDappPolicy implements `dapp.Policy`
-func (c *Client) ApplyDappPolicy(app *dapp.App) error {
-	app.Providers.KV = c
-	app.Providers.IdentityProvider = c
-	return nil
+// ClaimIdentity is the dapp identity for this package
+const ClaimIdentity = "GBHE5TFF6PLBUCO4BTBX6L5AX6CPG6ACHRMA6UJ7VTKCT674UVNV5LA2"
+
+// ClaimerName implements `MakesClaims`
+func (c *Client) ClaimerName() string { return "stellar" }
+
+// ClaimerIdentity implements `MakesClaims`
+func (c *Client) ClaimerIdentity() string {
+	return ClaimIdentity
 }
+
+// ClaimerClaims implements `MakesClaims`
+func (c *Client) ClaimerClaims() string { return "" }
 
 // Set implements kv.Kv
 func (c *Client) Set(identity dapp.Identity, key string, value []byte) (dapp.TX, error) {

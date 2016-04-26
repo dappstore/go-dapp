@@ -6,10 +6,10 @@ import (
 )
 
 // GetPublications resolves the publisher's latest published code
-func (sys *System) GetPublications(
+func (sys *Protocol) GetPublications(
 	publisher dapp.Identity,
 ) (hash dapp.Hash, err error) {
-	kv := sys.App.Providers
+	kv := sys.kv
 	bytes, err := kv.Get(publisher, "dapp:publications")
 	if err != nil {
 		err = errors.Wrap(err, "protocol-publish: failed to get publication hash")
@@ -22,11 +22,11 @@ func (sys *System) GetPublications(
 
 // SetPublications overwrites the publisher's publications hash using the hash
 // for the local directory at `path`.
-func (sys *System) SetPublications(
+func (sys *Protocol) SetPublications(
 	publisher dapp.Identity,
 	contents dapp.Hash,
 ) (tx dapp.TX, hash dapp.Hash, err error) {
-	kv := sys.App.Providers
+	kv := sys.kv
 
 	tx, err = kv.Set(publisher, "dapp:publications", contents.Bytes())
 	if err != nil {

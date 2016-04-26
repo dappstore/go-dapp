@@ -12,11 +12,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ApplyDappPolicy implements `dapp.Policy`
-func (c *Client) ApplyDappPolicy(app *dapp.App) error {
-	app.Providers.Store = c
-	return nil
+// ClaimIdentity is the dapp identity for this package
+const ClaimIdentity = "GAPFBAPSCKBJH6HRDXFIMOI367L3T3SMJ5I2EBW4BVVXSCL2WYNTJ5WL"
+
+// ClaimerName implements `MakesClaims`
+func (c *Client) ClaimerName() string {
+	return "ipfs"
 }
+
+// ClaimerIdentity implements `MakesClaims`
+func (c *Client) ClaimerIdentity() string {
+	return ClaimIdentity
+}
+
+// ClaimerClaims implements `MakesClaims`
+func (c *Client) ClaimerClaims() string { return "" }
 
 // HashLocalPath implements hash.Hasher
 func (c *Client) HashLocalPath(path string) dapp.Hash {

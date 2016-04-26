@@ -2,9 +2,12 @@ package publish
 
 import (
 	"github.com/dappstore/go-dapp"
+	"github.com/dappstore/go-dapp/protocols/claim"
 )
 
-// System represents a configuration of this protocol
-type System struct {
-	App *dapp.App
+// Protocol represents a configuration of the publish protocol
+type Protocol struct {
+	claims *claim.Protocol
+	store  dapp.Store
+	kv     dapp.KV
 }
