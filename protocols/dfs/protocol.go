@@ -1,6 +1,8 @@
 package dfs
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -10,16 +12,19 @@ import (
 
 // LoadTemp loads `contents` into a temporary path
 func (sys *Protocol) LoadTemp(contents dapp.Hash) (string, error) {
-	s := sys.store
-
-	dir, err := s.NewTempDir()
+	dir, err := sys.store.NewTempDir()
 	if err != nil {
-		return "", errors.Wrap(err, "protocol-fs: failed to create temp dir")
+		return "", errors.Wrap(err, "protocol-dfs: failed to create temp dir")
 	}
 
-	err = s.LoadLocalDir(filepath.Join(dir), contents)
+	err = os.Remove(dir)
 	if err != nil {
-		return "", errors.Wrap(err, "protocol-fs: load local dir failed")
+		return "", errors.Wrap(err, "protocol-dfs: failed to remove temp dir")
+	}
+
+	err = sys.store.LoadLocalDir(dir, contents)
+	if err != nil {
+		return "", errors.Wrap(err, "protocol-dfs: load local dir failed")
 	}
 
 	return dir, nil
@@ -42,6 +47,45 @@ func (sys *Protocol) LoadTempDir(contents map[string]dapp.Hash) (string, error) 
 	}
 
 	return dir, nil
+}
+
+// MergeAtPath loads `source` into a temporary directory, ensures that `path`
+// doesn't exist, then adds `contents` at `path`.
+func (sys *Protocol) MergeAtPath(
+	source dapp.Hash,
+	path string,
+	contents dapp.Hash,
+) (result dapp.Hash, err error) {
+
+	dir, err := sys.LoadTemp(source)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: loading temp failed")
+		return
+	}
+	// defer os.RemoveAll(dir)
+	dest := filepath.Join(dir, filepath.Base(path))
+
+	err = os.MkdirAll(dest, 0700)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: failed to create path for new content")
+		return
+	}
+
+	log.Println(dir)
+
+	// err = sys.store.LoadLocalDir(filepath.Join(dir, path), contents)
+	// if err != nil {
+	// 	err = errors.Wrap(err, "protocol-dfs: merging failed")
+	// 	return
+	// }
+	//
+	// result, err = sys.store.StoreLocalDir(dir)
+	// if err != nil {
+	// 	err = errors.Wrap(err, "protocol-dfs: store failed")
+	// 	return
+	// }
+
+	return
 }
 
 // StoreDir adds `contents` into the store grouped together as a directory
@@ -85,4 +129,31 @@ func (sys *Protocol) StoreLocalPaths(paths []string) (dapp.Hash, error) {
 	}
 
 	return h, nil
+}
+
+// StoreString adds `contents` into the store a file and returns its hash
+func (sys *Protocol) StoreString(
+	contents string,
+) (ret dapp.Hash, err error) {
+	dir, err := ioutil.TempDir("", "dapp-store-temp")
+
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: tempdir failed")
+		return
+	}
+
+	path := filepath.Join(dir, "contents")
+	err = ioutil.WriteFile(path, []byte(contents), 0600)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: write contents failed")
+		return
+	}
+
+	ret, err = sys.store.StoreLocalDir(path)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: ipfs add failed")
+		return
+	}
+
+	return
 }

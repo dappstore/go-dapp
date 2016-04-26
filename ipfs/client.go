@@ -1,11 +1,9 @@
 package ipfs
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/dappstore/go-dapp"
 	"github.com/jbenet/go-multihash"
@@ -14,6 +12,21 @@ import (
 
 // ClaimIdentity is the dapp identity for this package
 const ClaimIdentity = "GAPFBAPSCKBJH6HRDXFIMOI367L3T3SMJ5I2EBW4BVVXSCL2WYNTJ5WL"
+
+// Add ensures `path` is in ipfs
+func (c *Client) Add(path string) (multihash.Multihash, error) {
+	hashStr, err := c.shell.AddDir(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "ipfs: add failed")
+	}
+
+	hash, err := multihash.FromB58String(hashStr)
+	if err != nil {
+		return nil, errors.Wrap(err, "ipfs: failed to parse add result")
+	}
+
+	return hash, nil
+}
 
 // ClaimerName implements `MakesClaims`
 func (c *Client) ClaimerName() string {
@@ -28,9 +41,39 @@ func (c *Client) ClaimerIdentity() string {
 // ClaimerClaims implements `MakesClaims`
 func (c *Client) ClaimerClaims() string { return "" }
 
+// Get loads the ipfs data in the directory `dir` underneath `base` into the
+// local directory at `local`.
+func (c *Client) Get(base multihash.Multihash, dir string, local string) error {
+
+	// TODO: make more clear
+	ipfsPath := Join(base, dir)
+	if dir == "" {
+		ipfsPath = Join(base)
+	}
+
+	err := c.shell.Get(ipfsPath, local)
+	if err != nil {
+		return errors.Wrap(err, "ipfs: get failed")
+	}
+
+	return nil
+}
+
+// Exists checks to see if `base` has a child named `child` in ipfs
+func (c *Client) Exists(base multihash.Multihash, child string) (bool, error) {
+	ipfsPath := Join(base, child)
+	_, err := c.shell.List(ipfsPath)
+
+	if err != nil {
+		return false, errors.Wrap(err, "ipfs: list failed")
+	}
+
+	return true, nil
+}
+
 // HashLocalPath implements hash.Hasher
 func (c *Client) HashLocalPath(path string) dapp.Hash {
-	hash, err := add(path)
+	hash, err := c.Add(path)
 	if err != nil {
 		panic(err)
 	}
@@ -53,12 +96,13 @@ func (c *Client) LoadLocalDir(dir string, content dapp.Hash) error {
 	}
 
 	// TODO: make more clear
-	ipfsPath := fmt.Sprintf("/ipfs/%s", content.Multihash.B58String())
-	err = exec.Command("ipfs", "get", "-o", dir, ipfsPath).Run()
-	if err != nil {
-		return errors.Wrap(err, "ipfs: get failed")
+	ipfsPath := Join(content.Multihash)
 
-	}
+	log.Println("get", ipfsPath, dir)
+	// err = c.shell.Get(ipfsPath, dir)
+	// if err != nil {
+	// 	return errors.Wrap(err, "ipfs: get failed")
+	// }
 
 	return nil
 }
@@ -77,26 +121,6 @@ func (c *Client) NewTempDir() (string, error) {
 
 // StoreLocalDir implements dapp.Store
 func (c *Client) StoreLocalDir(path string) (dapp.Hash, error) {
-	hash, err := add(path)
+	hash, err := c.Add(path)
 	return dapp.Hash{Multihash: hash}, err
-}
-
-// Hash returns the hash of `path` according to ipfs
-func add(path string) (ret multihash.Multihash, err error) {
-	stdout, err := exec.Command("ipfs", "add", "-r", "-q", path).Output()
-	if err != nil {
-		err = errors.Wrap(err, "ipfs: add failed")
-		return
-	}
-
-	hashes := strings.Split(strings.TrimSpace(string(stdout)), "\n")
-	lastHash := hashes[len(hashes)-1]
-
-	ret, err = multihash.FromB58String(lastHash)
-	if err != nil {
-		err = errors.Wrap(err, "ipfs: failed decoding ipfs output")
-		return
-	}
-
-	return
 }
