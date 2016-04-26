@@ -1,4 +1,4 @@
-package dapp
+package app
 
 import (
 	"github.com/dappstore/go-dapp"
@@ -23,9 +23,9 @@ type Policy interface {
 	ApplyDappPolicy(*App) error
 }
 
-// NewApp creates a new dapp application with identity `id` and applies
+// New creates a new dapp application with identity `id` and applies
 // `policies`.
-func NewApp(id string, policies ...Policy) (app *App, err error) {
+func New(id string, policies ...Policy) (app *App, err error) {
 	app = &App{ID: id}
 
 	err = app.ApplyPolicies(policies...)

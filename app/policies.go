@@ -1,34 +1,49 @@
-package dapp
+package app
 
 import (
-	"github.com/dappstore/agree"
+	"github.com/dappstore/go-dapp"
+	"github.com/pkg/errors"
 )
 
-// AgreementOracle represents the dapp policy that when applied to the current
-// process causes dapp consider using `Horizon` when calculating agreement.
-type AgreementOracle struct {
-	agree.Oracle
+// IdentityProvider is a policy that registers an identity system.
+type IdentityProvider struct {
+	dapp.IdentityProvider
 }
 
-var _ Policy = &AgreementOracle{}
+var _ Policy = &IdentityProvider{}
 
-// ApplyDappPolicy applies `p` to `app`
-func (p *AgreementOracle) ApplyDappPolicy(app *App) error {
-	// app.agreements.Oracles = append(app.agreements.Oracles, p.Oracle)
+// ApplyDappPolicy implements `Policy`
+func (p *IdentityProvider) ApplyDappPolicy(app *App) error {
+	if app.Providers.IdentityProvider != nil {
+		return errors.New("policy: cannot overwrite identity system")
+	}
+
+	if p.IdentityProvider == nil {
+		return errors.New("policy: cannot apply nil identity system")
+	}
+
+	app.Providers.IdentityProvider = p.IdentityProvider
 	return nil
 }
 
-// AgreementPolicy represents the dapp policy that adds policy to the current
-// process' agreement system.
-type AgreementPolicy struct {
-	agree.Policy
+// KV is a policy that registers a decentralized key value store when applied.
+type KV struct {
+	dapp.KV
 }
 
-var _ Policy = &AgreementPolicy{}
+var _ Policy = &KV{}
 
-// ApplyDappPolicy applies `p` to `app`
-func (p *AgreementPolicy) ApplyDappPolicy(app *App) error {
-	// app.agreements.Policies = append(app.agreements.Policies, p.Policy)
+// ApplyDappPolicy implements `Policy`
+func (p *KV) ApplyDappPolicy(app *App) error {
+	if app.Providers.KV != nil {
+		return errors.New("policy: cannot overwrite kv system")
+	}
+
+	if p.KV == nil {
+		return errors.New("policy: cannot apply nil kv system")
+	}
+
+	app.Providers.KV = p.KV
 	return nil
 }
 
@@ -40,6 +55,27 @@ var _ Policy = &RunVerification{}
 
 // ApplyDappPolicy applies `p` to `app`
 func (p *RunVerification) ApplyDappPolicy(app *App) error {
+	return nil
+}
+
+// Store is a policy that registers a content addressable store when applied
+type Store struct {
+	dapp.Store
+}
+
+var _ Policy = &Store{}
+
+// ApplyDappPolicy implements `Policy`
+func (p *Store) ApplyDappPolicy(app *App) error {
+	if app.Providers.Store != nil {
+		return errors.New("policy: cannot overwrite store system")
+	}
+
+	if p.Store == nil {
+		return errors.New("policy: cannot apply nil store system")
+	}
+
+	app.Providers.Store = p.Store
 	return nil
 }
 
