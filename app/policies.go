@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/dappstore/go-dapp"
+	"github.com/dappstore/go-dapp/protocols/claim"
 	"github.com/pkg/errors"
 )
 
@@ -23,7 +24,7 @@ func (p *IdentityProvider) ApplyDappPolicy(app *App) error {
 	}
 
 	app.Providers.IdentityProvider = p.IdentityProvider
-	return nil
+	return addClaimer(p.IdentityProvider)
 }
 
 // KV is a policy that registers a decentralized key value store when applied.
@@ -44,7 +45,7 @@ func (p *KV) ApplyDappPolicy(app *App) error {
 	}
 
 	app.Providers.KV = p.KV
-	return nil
+	return addClaimer(p.KV)
 }
 
 // RunVerification represents the dapp policy that actually runs the process
@@ -75,8 +76,14 @@ func (p *Store) ApplyDappPolicy(app *App) error {
 		return errors.New("policy: cannot apply nil store system")
 	}
 
+	// TODO
+	// err := claim.Make("dapp.providers.store", p.Store.Identity())
+	// if err != nil {
+	// 	return errors.Wrap(err, "store-policy: could not main claim")
+	// }
+
 	app.Providers.Store = p.Store
-	return nil
+	return addClaimer(p.Store)
 }
 
 // VerifySelf is a policy that causes the binary to verify itself as an
@@ -90,5 +97,19 @@ var _ Policy = &VerifySelf{}
 
 // ApplyDappPolicy applies `p` to `app`
 func (p *VerifySelf) ApplyDappPolicy(app *App) error {
+	return nil
+}
+
+func addClaimer(c interface{}) error {
+	claimer, ok := c.(claim.MakesClaims)
+	if !ok {
+		return nil
+	}
+
+	err := claim.AddClaimer(claimer)
+	if err != nil {
+		return errors.Wrap(err, "store-policy: failed to add claimer")
+	}
+
 	return nil
 }
