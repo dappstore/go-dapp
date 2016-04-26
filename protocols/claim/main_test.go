@@ -54,7 +54,8 @@ func TestWriteFile(t *testing.T) {
 	p := New()
 	require.NoError(t, p.Make("foo", 1))
 
-	var fs afero.Fs = afero.NewMemMapFs()
+	var fs afero.Fs
+	fs = afero.NewMemMapFs()
 
 	// data is correct
 	assert.NoError(t, p.WriteFile(fs, "claim", 0700))
