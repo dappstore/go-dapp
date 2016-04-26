@@ -2,6 +2,8 @@ package publish
 
 import (
 	"github.com/dappstore/go-dapp"
+	"github.com/dappstore/go-dapp/protocols/claim"
+	"github.com/dappstore/go-dapp/protocols/dfs"
 	"github.com/pkg/errors"
 )
 
@@ -25,16 +27,23 @@ func (sys *Protocol) GetPublications(
 func (sys *Protocol) SetPublications(
 	publisher dapp.Identity,
 	contents dapp.Hash,
-) (tx dapp.TX, hash dapp.Hash, err error) {
-	kv := sys.kv
+) (tx dapp.TX, publication dapp.Hash, err error) {
 
-	tx, err = kv.Set(publisher, "dapp:publications", contents.Bytes())
+	pdfs := dfs.New(sys.store)
+	claims, err := pdfs.StoreString(claim.Default.Claims.String())
+
+	// merge current processe's claims file into hash
+	publication, err = pdfs.MergeAtPath(contents, ".dapp/claims/publish", claims)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-publish: failed to merge claims with content")
+		return
+	}
+
+	tx, err = sys.kv.Set(publisher, "dapp:publications", contents.Bytes())
 	if err != nil {
 		err = errors.Wrap(err, "protocol-publish: failed to set publication hash")
 		return
 	}
-
-	hash = contents
 
 	return
 }

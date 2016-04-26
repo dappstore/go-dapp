@@ -6,10 +6,11 @@ import (
 
 // Protocol represents a configuration of the publish protocol
 type Protocol struct {
-	kv dapp.KV
+	store dapp.Store
+	kv    dapp.KV
 }
 
 // New creates a new dfs protocol
-func New(kv dapp.KV) *Protocol {
-	return &Protocol{kv: kv}
+func New(kv dapp.KV, store dapp.Store) *Protocol {
+	return &Protocol{kv: kv, store: store}
 }
