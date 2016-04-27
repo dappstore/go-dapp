@@ -8,10 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Defaults is a policy that sets the core providers to the dapp system to the
-// defaults, namely using stellar for id and kv providers, and ipfs for the
-// store provider.
-var Defaults = NewPolicy("defaults",
+// DefaultProviders is a policy that sets the core providers to the dapp system
+// to the defaults, namely using stellar for id and kv providers, and ipfs for
+// the store provider.
+var DefaultProviders = NewPolicy("default-providers",
 	&Store{Store: ipfs.DefaultClient},
 	&KV{KV: stellar.DefaultClient},
 	&IdentityProvider{IdentityProvider: stellar.DefaultClient},

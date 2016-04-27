@@ -26,9 +26,9 @@ type Policy interface {
 	ApplyDappPolicy(*App) error
 }
 
-// New creates a new dapp application with identity `id` and applies
+// NewApp creates a new dapp application with identity `id` and applies
 // `policies`.
-func New(id string, policies ...Policy) (app *App, err error) {
+func NewApp(id string, policies ...Policy) (app *App, err error) {
 	app = &App{ID: id}
 	app.once.Do(func() {
 		err = app.init(policies)
