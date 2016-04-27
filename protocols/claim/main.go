@@ -50,6 +50,11 @@ type Protocol struct {
 	claimers       []MakesClaims
 }
 
+// Verifier is a type that can verify claims
+type Verifier interface {
+	VerifyClaims(*Claims) error
+}
+
 // New creates a new claim protocol
 func New() *Protocol {
 	return &Protocol{
@@ -88,6 +93,12 @@ func Make(path string, value interface{}) error {
 // Push pushes a claim on the default claim protocol
 func Push(path string, value interface{}) error {
 	return Default.Make(path, value)
+}
+
+// Verify runs the verification process on `claims`, consulting with the members
+// of `verifiers` to process.
+func Verify(claims *Claims, verifiers ...Verifier) error {
+	return nil
 }
 
 // WriteFile writes the claims made on the default claim protocol to disk.
