@@ -79,7 +79,7 @@ func (sys *Protocol) MergeAtPath(
 	// 	return
 	// }
 	//
-	// result, err = sys.store.StoreLocalDir(dir)
+	// result, err = sys.store.StorePath(dir)
 	// if err != nil {
 	// 	err = errors.Wrap(err, "protocol-dfs: store failed")
 	// 	return
@@ -99,7 +99,7 @@ func (sys *Protocol) StoreDir(contents map[string]dapp.Hash) (dapp.Hash, error) 
 
 	defer os.RemoveAll(dir)
 
-	h, err := s.StoreLocalDir(dir)
+	h, err := s.StorePath(dir)
 	if err != nil {
 		return dapp.Hash{}, errors.Wrap(err, "StoreDir: ipfs add failed")
 	}
@@ -116,7 +116,7 @@ func (sys *Protocol) StoreLocalPaths(paths []string) (dapp.Hash, error) {
 	for _, path := range paths {
 		var err error
 		name := filepath.Base(path)
-		contents[name], err = s.StoreLocalDir(path)
+		contents[name], err = s.StorePath(path)
 		if err != nil {
 			return dapp.Hash{},
 				errors.Wrap(err, "StoreLocalPaths: failed storing child")
@@ -149,7 +149,7 @@ func (sys *Protocol) StoreString(
 		return
 	}
 
-	ret, err = sys.store.StoreLocalDir(path)
+	ret, err = sys.store.StorePath(path)
 	if err != nil {
 		err = errors.Wrap(err, "protocol-dfs: ipfs add failed")
 		return

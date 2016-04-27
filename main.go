@@ -55,9 +55,13 @@ type KV interface {
 // Store represents a module that can store and load filesystems
 // addressed by their content.
 type Store interface {
-	StoreLocalDir(path string) (Hash, error)
-	LoadLocalDir(path string, content Hash) error
-	NewTempDir() (string, error)
+	// StorePath writes the contents of `path` to the store, return the hash that
+	// addresses the contents.
+	StorePath(path string) (Hash, error)
+
+	// LoadPath writes the content (either directory or file) addressed by
+	// `content` to `path`
+	LoadPath(path string, content Hash) error
 }
 
 // TX represents the id of a transaction

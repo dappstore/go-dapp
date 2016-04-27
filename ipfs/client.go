@@ -1,7 +1,7 @@
 package ipfs
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -12,21 +12,6 @@ import (
 
 // ClaimIdentity is the dapp identity for this package
 const ClaimIdentity = "GAPFBAPSCKBJH6HRDXFIMOI367L3T3SMJ5I2EBW4BVVXSCL2WYNTJ5WL"
-
-// Add ensures `path` is in ipfs
-func (c *Client) Add(path string) (multihash.Multihash, error) {
-	hashStr, err := c.shell.AddDir(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "ipfs: add failed")
-	}
-
-	hash, err := multihash.FromB58String(hashStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "ipfs: failed to parse add result")
-	}
-
-	return hash, nil
-}
 
 // ClaimerName implements `MakesClaims`
 func (c *Client) ClaimerName() string {
@@ -40,24 +25,6 @@ func (c *Client) ClaimerIdentity() string {
 
 // ClaimerClaims implements `MakesClaims`
 func (c *Client) ClaimerClaims() string { return "" }
-
-// Get loads the ipfs data in the directory `dir` underneath `base` into the
-// local directory at `local`.
-func (c *Client) Get(base multihash.Multihash, dir string, local string) error {
-
-	// TODO: make more clear
-	ipfsPath := Join(base, dir)
-	if dir == "" {
-		ipfsPath = Join(base)
-	}
-
-	err := c.shell.Get(ipfsPath, local)
-	if err != nil {
-		return errors.Wrap(err, "ipfs: get failed")
-	}
-
-	return nil
-}
 
 // Exists checks to see if `base` has a child named `child` in ipfs
 func (c *Client) Exists(base multihash.Multihash, child string) (bool, error) {
@@ -73,54 +40,73 @@ func (c *Client) Exists(base multihash.Multihash, child string) (bool, error) {
 
 // HashLocalPath implements hash.Hasher
 func (c *Client) HashLocalPath(path string) dapp.Hash {
-	hash, err := c.Add(path)
+	hash, err := c.StorePath(path)
 	if err != nil {
-		panic(err)
+		panic(errors.Wrap(err, "ipfs-hasher: store failed"))
 	}
 
-	return dapp.Hash{Multihash: hash}
+	return hash
 }
 
-// LoadLocalDir implements dapp.Store
-func (c *Client) LoadLocalDir(dir string, content dapp.Hash) error {
-	stat, err := os.Stat(dir)
+// LoadPath implements dapp.Store
+func (c *Client) LoadPath(dir string, content dapp.Hash) error {
+	_, err := os.Stat(dir)
+	if err == nil {
+		return errors.New("ipfs-load: destination exists")
+	}
 
-	// if the error is not "does not exists" and is populated, error out
-	if !os.IsNotExist(err) && err != nil {
+	if !os.IsNotExist(err) {
 		return errors.Wrap(err, "ipfs: stat destination failed")
 	}
 
-	// if it exists, ensure it is a dir
-	if !os.IsNotExist(err) && !stat.IsDir() {
-		return errors.New("ipfs: destination is not directory")
-	}
-
-	// TODO: make more clear
 	ipfsPath := Join(content.Multihash)
 
 	log.Println("get", ipfsPath, dir)
-	// err = c.shell.Get(ipfsPath, dir)
-	// if err != nil {
-	// 	return errors.Wrap(err, "ipfs: get failed")
-	// }
+	err = c.shell.Get(ipfsPath, dir)
+	if err != nil {
+		return errors.Wrap(err, "ipfs: get failed")
+	}
 
 	return nil
 }
 
-// NewTempDir implements dapp.Store
-func (c *Client) NewTempDir() (string, error) {
-	dir, err := ioutil.TempDir("", "dapp-store-temp")
-
-	if err != nil {
-		return "", errors.Wrap(err, "ipfs: tempdir failed")
-
-	}
-
-	return dir, nil
+// StorePath implements dapp.Store
+func (c *Client) StorePath(path string) (dapp.Hash, error) {
+	log.Println("ISSUE:  for some reason, if path is a directory, it gets nested within itself.  seems to be a the go libs issue, since cli works")
+	hash, err := c.add(path)
+	return dapp.Hash{Multihash: hash}, err
 }
 
-// StoreLocalDir implements dapp.Store
-func (c *Client) StoreLocalDir(path string) (dapp.Hash, error) {
-	hash, err := c.Add(path)
-	return dapp.Hash{Multihash: hash}, err
+func (c *Client) add(path string) (multihash.Multihash, error) {
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "ipfs-add: path doesn't exist")
+	}
+
+	var hashStr string
+
+	if stat.IsDir() {
+		hashStr, err = c.shell.AddDir(path)
+	} else {
+		var f io.ReadCloser
+		f, err = os.Open(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "ipfs-add: couldn't open path")
+		}
+		defer f.Close()
+
+		hashStr, err = c.shell.Add(f)
+	}
+
+	if err != nil {
+		return nil, errors.Wrap(err, "ipfs-add: shell command failed")
+	}
+
+	hash, err := multihash.FromB58String(hashStr)
+	if err != nil {
+		return nil, errors.Wrap(err, "ipfs: failed to parse add result")
+	}
+
+	return hash, nil
 }
