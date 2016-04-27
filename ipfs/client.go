@@ -73,6 +73,7 @@ func (c *Client) LoadPath(dir string, content dapp.Hash) error {
 // StorePath implements dapp.Store
 func (c *Client) StorePath(path string) (dapp.Hash, error) {
 	log.Println("ISSUE:  for some reason, if path is a directory, it gets nested within itself.  seems to be a the go libs issue, since cli works")
+
 	hash, err := c.add(path)
 	return dapp.Hash{Multihash: hash}, err
 }
@@ -87,7 +88,7 @@ func (c *Client) add(path string) (multihash.Multihash, error) {
 	var hashStr string
 
 	if stat.IsDir() {
-		hashStr, err = c.shell.AddDir(path)
+		hashStr, err = c.addDir(path)
 	} else {
 		var f io.ReadCloser
 		f, err = os.Open(path)
@@ -109,4 +110,8 @@ func (c *Client) add(path string) (multihash.Multihash, error) {
 	}
 
 	return hash, nil
+}
+
+func (c *Client) addDir(path string) (string, error) {
+	return "", errors.New("addDir: not implemented")
 }

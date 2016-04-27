@@ -1,8 +1,10 @@
 package app
 
 import (
+	"fmt"
 	"github.com/dappstore/go-dapp"
 	"github.com/pkg/errors"
+	"sync"
 )
 
 // App represents the identity for an application that is deployed using dapp
@@ -15,6 +17,7 @@ type App struct {
 		dapp.Store
 	}
 
+	once     sync.Once
 	policies []Policy
 }
 
@@ -27,70 +30,49 @@ type Policy interface {
 // `policies`.
 func New(id string, policies ...Policy) (app *App, err error) {
 	app = &App{ID: id}
-
-	err = app.ApplyPolicies(policies...)
-	if err != nil {
-		err = errors.Wrap(err, "dapp: create-app failed to apply policies")
-		return
-	}
-
-	if app.Providers.IdentityProvider == nil {
-		err = errors.New("dapp: no identity provider initialized while applying policies")
-		return
-	}
-
-	if app.Providers.KV == nil {
-		err = errors.New("dapp: no kv initialized while applying policies")
-		return
-	}
-
-	if app.Providers.Store == nil {
-		err = errors.New("dapp: no store initialized while applying policies")
-		return
-	}
-
-	// TODO: extract these to policies
-	// if *printID {
-	// 	fmt.Println(id)
-	// 	os.Exit(0)
-	// }
-	//
-	// if *printVersion {
-	// 	fmt.Println(version)
-	// 	os.Exit(0)
-	// }
+	app.once.Do(func() {
+		err = app.init(policies)
+	})
 
 	return
 }
 
-// ApplyPolicy applies `p` t `a`
-func (a *App) ApplyPolicy(p Policy) error {
-	err := p.ApplyDappPolicy(a)
-	if err != nil {
-		return errors.Wrap(err, "failed applying policy")
-	}
-	a.policies = append(a.policies, p)
-	return nil
+// NewPolicy creates a new composite policy.
+func NewPolicy(name string, policies ...Policy) Policy {
+	return &compositePolicy{name, policies}
 }
 
-// ApplyPolicies applies all `policies` onto `a`.
-func (a *App) ApplyPolicies(policies ...Policy) error {
-	for _, p := range policies {
-		err := a.ApplyPolicy(p)
+type compositePolicy struct {
+	name     string
+	policies []Policy
+}
+
+// ApplyDappPolicy implements `Policy`
+func (p *compositePolicy) ApplyDappPolicy(app *App) error {
+	for i, cp := range p.policies {
+		err := cp.ApplyDappPolicy(app)
 		if err != nil {
-			return errors.Wrap(err, "dapp: failed-policy")
+			msg := fmt.Sprintf("%s: child-policy %d failed", p.name, i)
+			return errors.Wrap(err, msg)
 		}
 	}
 
 	return nil
 }
 
-// CurrentUser returns the current user's identity
-func (a *App) CurrentUser() dapp.Identity {
-	return dapp.CurrentUser(a.ID)
+// fnPolicy is a helper to make it easy to build policies from functions
+type fnPolicy struct {
+	name string
+	fn   func(app *App) error
 }
 
-// Login logs `user` into `a`
-func (a *App) Login(user dapp.Identity) {
-	dapp.Login(a.ID, user)
+// ApplyDappPolicy implements `Policy`
+func (p *fnPolicy) ApplyDappPolicy(app *App) error {
+	err := p.fn(app)
+	if err != nil {
+		msg := fmt.Sprintf("%s: policy failed", p.name)
+		return errors.Wrap(err, msg)
+	}
+
+	return nil
 }

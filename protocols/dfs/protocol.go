@@ -12,7 +12,7 @@ import (
 
 // LoadTemp loads `contents` into a temporary path
 func (sys *Protocol) LoadTemp(contents dapp.Hash) (string, error) {
-	dir, err := sys.store.NewTempDir()
+	dir, err := ioutil.TempDir("", "dapp-dfs")
 	if err != nil {
 		return "", errors.Wrap(err, "protocol-dfs: failed to create temp dir")
 	}
@@ -22,7 +22,7 @@ func (sys *Protocol) LoadTemp(contents dapp.Hash) (string, error) {
 		return "", errors.Wrap(err, "protocol-dfs: failed to remove temp dir")
 	}
 
-	err = sys.store.LoadLocalDir(dir, contents)
+	err = sys.store.LoadPath(dir, contents)
 	if err != nil {
 		return "", errors.Wrap(err, "protocol-dfs: load local dir failed")
 	}
@@ -32,17 +32,16 @@ func (sys *Protocol) LoadTemp(contents dapp.Hash) (string, error) {
 
 // LoadTempDir loads all hashes into a temp directory
 func (sys *Protocol) LoadTempDir(contents map[string]dapp.Hash) (string, error) {
-	s := sys.store
 
-	dir, err := s.NewTempDir()
+	dir, err := ioutil.TempDir("", "dapp-dfs")
 	if err != nil {
-		return "", errors.Wrap(err, "LoadMap: failed to create local dir")
+		return "", errors.Wrap(err, "protocol-dfs: failed to create temp dir")
 	}
 
 	for name, hash := range contents {
-		err = s.LoadLocalDir(filepath.Join(dir, name), hash)
+		err = sys.store.LoadPath(filepath.Join(dir, name), hash)
 		if err != nil {
-			return "", errors.Wrap(err, "LoadMap: store load failed")
+			return "", errors.Wrap(err, "protocol-dfs: store load failed")
 		}
 	}
 
