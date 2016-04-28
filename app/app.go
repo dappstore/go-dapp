@@ -16,6 +16,7 @@ func (a *App) ApplyPolicy(p Policy) error {
 	if err != nil {
 		return errors.Wrap(err, "failed applying policy")
 	}
+
 	a.policies = append(a.policies, p)
 	return nil
 }
@@ -45,7 +46,7 @@ func (a *App) Login(user dapp.Identity) {
 // SendPayment sends a simple payment.
 //
 // NOTE: this is not intended to be the final api... it's just a prototype
-func (a *App) SendPayment(dest, amount string) (dapp.TX, error) {
+func (a *App) SendPayment(dest dapp.Identity, amount string) (dapp.TX, error) {
 	// watch for payments to developer address.  When one is seen, return
 
 	return dapp.TX(""), errors.New("not implemented")
