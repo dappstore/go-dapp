@@ -4,6 +4,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/dappstore/go-dapp"
 	"github.com/jbenet/go-multihash"
@@ -101,7 +103,7 @@ func (c *Client) add(path string) (multihash.Multihash, error) {
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, "ipfs-add: shell command failed")
+		return nil, errors.Wrap(err, "ipfs-add: failed")
 	}
 
 	hash, err := multihash.FromB58String(hashStr)
@@ -113,5 +115,15 @@ func (c *Client) add(path string) (multihash.Multihash, error) {
 }
 
 func (c *Client) addDir(path string) (string, error) {
-	return "", errors.New("addDir: not implemented")
+
+	stdout, err := exec.Command("ipfs", "add", "-r", "-q", path).Output()
+	if err != nil {
+		return "", errors.Wrap(err, "ipfs: failed to add dir")
+	}
+
+	hashes := strings.Split(strings.TrimSpace(string(stdout)), "\n")
+	lastHash := hashes[len(hashes)-1]
+
+	// return c.shell.AddDir(path)
+	return lastHash, nil
 }
