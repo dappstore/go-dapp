@@ -2,7 +2,6 @@ package dfs
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -49,7 +48,7 @@ func (sys *Protocol) LoadTempDir(contents map[string]dapp.Hash) (string, error) 
 }
 
 // MergeAtPath loads `source` into a temporary directory, ensures that `path`
-// doesn't exist, then adds `contents` at `path`.
+// doesn't exist (and removes it if it does), then adds `contents` at `path`.
 func (sys *Protocol) MergeAtPath(
 	source dapp.Hash,
 	path string,
@@ -62,27 +61,38 @@ func (sys *Protocol) MergeAtPath(
 		return
 	}
 	// defer os.RemoveAll(dir)
-	dest := filepath.Join(dir, filepath.Base(path))
 
-	err = os.MkdirAll(dest, 0700)
+	dest := filepath.Join(dir, path)
+	_, err = os.Stat(dest)
+	if err == nil {
+		if err != nil {
+			err = errors.Wrap(err, "protocol-dfs: failed to remove existing content")
+			return
+		}
+	}
+
+	if !os.IsNotExist(err) {
+		err = errors.Wrap(err, "protocol-dfs: failed to stat destination")
+		return
+	}
+
+	err = os.MkdirAll(filepath.Dir(dest), 0700)
 	if err != nil {
 		err = errors.Wrap(err, "protocol-dfs: failed to create path for new content")
 		return
 	}
 
-	log.Println(dir)
+	err = sys.store.LoadPath(dest, contents)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs: merging failed")
+		return
+	}
 
-	// err = sys.store.LoadLocalDir(filepath.Join(dir, path), contents)
-	// if err != nil {
-	// 	err = errors.Wrap(err, "protocol-dfs: merging failed")
-	// 	return
-	// }
-	//
-	// result, err = sys.store.StorePath(dir)
-	// if err != nil {
-	// 	err = errors.Wrap(err, "protocol-dfs: store failed")
-	// 	return
-	// }
+	result, err = sys.store.StorePath(dir)
+	if err != nil {
+		err = errors.Wrap(err, "protocol-dfs-merge: store failed")
+		return
+	}
 
 	return
 }
