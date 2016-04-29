@@ -60,18 +60,19 @@ func (sys *Protocol) MergeAtPath(
 		err = errors.Wrap(err, "protocol-dfs: loading temp failed")
 		return
 	}
-	// defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
 	dest := filepath.Join(dir, path)
 	_, err = os.Stat(dest)
-	if err == nil {
+
+	switch {
+	case err == nil:
+		err = os.RemoveAll(dest)
 		if err != nil {
 			err = errors.Wrap(err, "protocol-dfs: failed to remove existing content")
 			return
 		}
-	}
-
-	if !os.IsNotExist(err) {
+	case !os.IsNotExist(err):
 		err = errors.Wrap(err, "protocol-dfs: failed to stat destination")
 		return
 	}
@@ -138,6 +139,12 @@ func (sys *Protocol) StoreLocalPaths(paths []string) (dapp.Hash, error) {
 	}
 
 	return h, nil
+}
+
+// StorePath stores a single path in the dfs store and returns the content hash
+// for it.
+func (sys *Protocol) StorePath(path string) (dapp.Hash, error) {
+	return sys.store.StorePath(path)
 }
 
 // StoreString adds `contents` into the store a file and returns its hash
