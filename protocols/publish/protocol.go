@@ -33,7 +33,7 @@ func (sys *Protocol) SetPublications(
 	claims, err := pdfs.StoreString(claim.Default.Claims.String())
 
 	// merge current processe's claims file into hash
-	publication, err = pdfs.MergeAtPath(contents, ".dapp/claims/publish", claims)
+	publication, err = pdfs.MergeAtPath(contents, "_dapp/claims/publish", claims)
 	if err != nil {
 		err = errors.Wrap(err, "protocol-publish: failed to merge claims with content")
 		return
